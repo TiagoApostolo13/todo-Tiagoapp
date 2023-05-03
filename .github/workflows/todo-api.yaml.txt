@@ -1,0 +1,58 @@
+name: todo-Tiagoapp
+
+on:
+  push:
+    branches: [ build-test ]
+    paths:
+      - 'src/todo-Tiagoapp/**'
+      - 'src/todo-Tiagoapp.Tests/**'
+      - '.github/workflows/todo-Tiagoapp.yml'
+  pull_request:
+    branches: [ build-test ]
+    paths:
+      - 'src/todo-Tiagoapp/**'
+      - 'src/todo-Tiagoapp.Tests/**'
+      - '.github/workflows/todo-Tiagoapp.yml'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.x
+    - name: Restore dependencies
+      run: |
+        dotnet restore src/todo-Tiagoapp/todo-Tiagoapp.csproj
+        dotnet restore src/todo-Tiagoapp.Tests/todo-Tiagoapp.Tests.csproj
+    
+    - name: Build
+      run: |
+        dotnet build --no-restore src/todo-Tiagoapp/todo-Tiagoapp.csproj
+        dotnet build --no-restore src/todo-Tiagoapp.Tests/todo-Tiagoapp.Tests.csproj
+    
+    - name: Test
+      run: dotnet test --no-build src/todo-Tiagoapp.Tests/todo-Tiagoapp.Tests.csproj --verbosity normal --logger "trx;LogFileName=test-results.trx"
+      
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: todo-Tiagoapp Tests
+        path: '**/TestResults/*.trx'
+        reporter: dotnet-trx
+    
+    - name: Publish
+      if: github.event_name != 'pull_request'
+      run: |
+        dotnet publish --no-build src/todo-Tiagoapp/todo-Tiagoapp.csproj -o src/todo-Tiagoapp/publish
+
+    - uses: actions/upload-artifact@v3
+      if: github.event_name != 'pull_request'
+      with:
+        name: todo-Tiagoapp
+        path: src/todo-Tiagoapp/publish
